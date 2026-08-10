@@ -6,6 +6,8 @@ import { useAuthenticatedImage } from '../../hooks/useAuthenticatedImage'
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 import BookCover from '../../components/BookCover'
+import ExportButton from '../../components/ExportButton'
+import { booksExportUrl, quoteQueryValue } from '../../lib/download'
 import type { LibraryOutletContext } from '../../components/LibraryOutlet'
 import type {
   Book,
@@ -764,6 +766,18 @@ export default function ContributorPage() {
           {/* Books in library */}
           <Section
             title={`Books in Library${contributor.books.length > 0 ? ` (${contributor.books.length})` : ''}`}
+            action={contributor.books.length > 0 && (
+              // Same contributor filter the books list uses, so this exports
+              // exactly the titles shown below.
+              <ExportButton
+                urlFor={format => booksExportUrl(libraryId!, format, {
+                  q: `contributor:${quoteQueryValue(contributor.name)}`,
+                  sort: 'title',
+                })}
+                fallbackName={`books-by-${contributor.name}`}
+                compact
+              />
+            )}
           >
             <LibraryBooksList books={contributor.books} libraryId={libraryId!} />
           </Section>

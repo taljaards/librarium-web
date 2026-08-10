@@ -12,6 +12,8 @@ import MediaTypeSelect from '../../components/MediaTypeSelect'
 import EmojiPicker from '../../components/EmojiPicker'
 import EditBookModal from '../../components/EditBookModal'
 import LoanFormModal from '../../components/LoanFormModal'
+import ExportButton from '../../components/ExportButton'
+import { booksExportUrl, loansExportUrl, quoteQueryValue } from '../../lib/download'
 import {
   allConditions,
   conditionLabel,
@@ -1476,6 +1478,12 @@ function ShelfDetailView({ shelf, libraryId, onBack }: ShelfDetailViewProps) {
       <div className="flex items-center gap-3 mb-4">
         <button onClick={onBack} className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">← Back</button>
         <div className="flex-1" />
+        <ExportButton
+          urlFor={format => booksExportUrl(libraryId, format, { q: `shelf:${quoteQueryValue(shelf.name)}` })}
+          fallbackName={`shelf-${shelf.name}`}
+          label="Export shelf"
+          disabled={books.length === 0}
+        />
         <button onClick={() => setShowAddBook(true)}
           className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors">
           Add book
@@ -2346,6 +2354,13 @@ function BooksTab({ libraryId, mediaTypes, canEdit }: BooksTabProps) {
           )}
         </div>
         )}
+        {/* Exports whatever the toolbar is currently showing — the same
+            search, filters and sort the list was loaded with. */}
+        <ExportButton
+          urlFor={format => booksExportUrl(libraryId, format, { q: search, sort, sortDir })}
+          fallbackName="library-books"
+          disabled={(data?.total ?? 0) === 0}
+        />
         <Link to={`/import?library=${libraryId}`}
           className="rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex-shrink-0">
           Import CSV
@@ -5243,6 +5258,16 @@ function SeriesDetailView({ seriesId, libraryId, setExtraCrumbs, onBack }: Serie
           className="rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-950/50 hover:text-red-700 dark:hover:text-red-400 hover:border-red-300 dark:hover:border-red-800 transition-colors">
           Delete series
         </button>
+        {/* Exports the volumes you own from this series, ordered by position. */}
+        <ExportButton
+          urlFor={format => booksExportUrl(libraryId, format, {
+            q: `series:${quoteQueryValue(series.name)}`,
+            sort: 'title',
+          })}
+          fallbackName={`series-${series.name}`}
+          label="Export"
+          disabled={!hasAnyRows}
+        />
         <button onClick={() => setShowAdd(true)}
           className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors">
           Add book
@@ -5956,6 +5981,14 @@ function LoansTab({ libraryId }: LoansTabProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
+        {/* Mirrors the server-side half of the loan filters (text search and
+            returned-vs-active). The overdue pill is a client-side view
+            filter, but the export marks overdue rows in its status column. */}
+        <ExportButton
+          urlFor={format => loansExportUrl(libraryId, format, { search, includeReturned })}
+          fallbackName="library-loans"
+          disabled={visibleLoans.length === 0}
+        />
         <button onClick={() => setShowNew(true)}
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors whitespace-nowrap">
           New loan
