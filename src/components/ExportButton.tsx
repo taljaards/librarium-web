@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { useToast } from './Toast'
-import { downloadAuthenticated, DownloadError, type ExportFormat } from '../lib/download'
+import { downloadAuthenticated, DownloadError, EXPORT_FORMATS, type ExportFormat } from '../lib/download'
 
 interface ExportButtonProps {
   /** Returns the export URL for a format. Called at click time so the
@@ -99,16 +99,14 @@ export default function ExportButton({
       {open && (
         <div role="menu"
           className="absolute right-0 top-full mt-1 z-30 w-52 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg py-1">
-          <button type="button" role="menuitem" aria-label="Export as CSV" onClick={() => run('csv')}
-            className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-            <span className="block text-sm text-gray-700 dark:text-gray-300">CSV</span>
-            <span className="block text-xs text-gray-400 dark:text-gray-500">Spreadsheets — re-importable</span>
-          </button>
-          <button type="button" role="menuitem" aria-label="Export as JSON" onClick={() => run('json')}
-            className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-            <span className="block text-sm text-gray-700 dark:text-gray-300">JSON</span>
-            <span className="block text-xs text-gray-400 dark:text-gray-500">Full detail, nothing flattened</span>
-          </button>
+          {EXPORT_FORMATS.map(({ format, label: formatLabel, hint }) => (
+            <button key={format} type="button" role="menuitem"
+              aria-label={`Export as ${formatLabel}`} onClick={() => run(format)}
+              className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+              <span className="block text-sm text-gray-700 dark:text-gray-300">{formatLabel}</span>
+              <span className="block text-xs text-gray-400 dark:text-gray-500">{hint}</span>
+            </button>
+          ))}
         </div>
       )}
     </div>

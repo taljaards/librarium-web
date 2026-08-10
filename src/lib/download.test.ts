@@ -4,6 +4,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   booksExportUrl,
+  EXPORT_FORMATS,
   downloadAuthenticated,
   DownloadError,
   filenameFromResponse,
@@ -145,5 +146,31 @@ describe('downloadAuthenticated', () => {
 
     await expect(downloadAuthenticated(async () => 'tok', '/export', 'x.csv'))
       .rejects.toThrow('Cannot connect to server')
+  })
+})
+
+// Menu order is a deliberate product decision, not a layout detail: JSON is
+// offered first because it keeps the data's shape, and CSV — the more common
+// want, but the lossier one — reads as the second choice. A refactor could
+// silently flip that, so it is pinned here.
+describe('EXPORT_FORMATS', () => {
+  it('offers JSON before CSV', () => {
+    expect(EXPORT_FORMATS.map(f => f.format)).toEqual(['json', 'csv'])
+  })
+
+  it('describes every format it offers', () => {
+    for (const { format, label, hint } of EXPORT_FORMATS) {
+      expect(label, `${format} needs a label`).toBeTruthy()
+      expect(hint, `${format} needs a hint`).toBeTruthy()
+    }
+  })
+
+  it('does not claim either format is a complete backup', () => {
+    // Neither export carries covers, media files or non-primary editions, so
+    // a hint promising completeness would be a promise it cannot keep — that
+    // is what a database dump is for.
+    for (const { hint } of EXPORT_FORMATS) {
+      expect(hint.toLowerCase()).not.toMatch(/backup|everything|complete|full detail/)
+    }
   })
 })

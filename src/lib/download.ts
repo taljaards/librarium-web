@@ -12,6 +12,27 @@
 /** Format of an export request. Mirrors the API's `format` query parameter. */
 export type ExportFormat = 'csv' | 'json'
 
+/**
+ * The formats offered, in the order they are presented.
+ *
+ * JSON leads because it is the one that keeps the data's shape: tags,
+ * credits and genres stay as lists, and an absent value stays absent
+ * instead of becoming an empty cell. CSV flattens all of that to open
+ * cleanly in a spreadsheet, which is the more common want but the lossier
+ * one, so it reads better as the deliberate second choice.
+ *
+ * Neither is an archive — a full backup of a self-hosted instance is a
+ * database dump plus the cover and media directories. The hints say what
+ * each format is for and stop short of implying otherwise.
+ *
+ * Data rather than JSX so the order is one testable fact instead of an
+ * accident of markup.
+ */
+export const EXPORT_FORMATS: { format: ExportFormat; label: string; hint: string }[] = [
+  { format: 'json', label: 'JSON', hint: 'Structured — nothing collapsed into text' },
+  { format: 'csv', label: 'CSV', hint: 'Spreadsheets — re-importable' },
+]
+
 export class DownloadError extends Error {
   readonly status: number
   constructor(status: number, message: string) {
