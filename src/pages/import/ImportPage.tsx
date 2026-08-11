@@ -280,6 +280,50 @@ function pickPreviewIndices(poolSize: number, count: number): number[] {
   return order.slice(0, count)
 }
 
+// ─── Import caveats ───────────────────────────────────────────────────────────
+
+// What a CSV import cannot restore, stated where someone is about to rely on
+// it. Every line below is a real limit of the import worker, not a caution:
+// it reads one row as one book keyed on ISBN, and writes only the fields the
+// mapping names. A book exported with several editions comes back with one;
+// series, shelves and copy counts were never import fields at all.
+//
+// Kept as a collapsed <details> so it informs without lecturing anyone
+// importing a Goodreads file for the first time.
+function ImportCaveats() {
+  return (
+    <details className="mb-4 rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/20 px-3 py-2">
+      <summary className="cursor-pointer text-sm font-medium text-amber-900 dark:text-amber-200">
+        What a CSV import can and can&rsquo;t restore
+      </summary>
+      <div className="mt-2 space-y-2 text-xs text-amber-900/90 dark:text-amber-200/80">
+        <p>
+          A row becomes one book, matched on ISBN. Titles, authors, edition details,
+          tags, and your reading status, rating, review, notes and dates all come back
+          from the columns you map below.
+        </p>
+        <p>
+          These are not import fields, so they are <strong>not</strong> restored even
+          when a Librarium export includes them as columns: series and volume position,
+          shelves, copy counts (each import counts as one copy), reading progress and
+          re-read counts. Covers and ebook or audiobook files are in neither format —
+          enable “fetch covers” below to look them up again.
+        </p>
+        <p>
+          Only the primary edition survives a CSV round trip. If a book&rsquo;s
+          <code className="mx-1 rounded bg-amber-100 dark:bg-amber-900/40 px-1">edition_count</code>
+          column is above 1, its other editions — and anything you rated or noted
+          against them — are only in the JSON export.
+        </p>
+        <p className="text-amber-800/80 dark:text-amber-200/60">
+          None of this is a backup. A full copy of a self-hosted instance is a database
+          dump plus the cover and media directories.
+        </p>
+      </div>
+    </details>
+  )
+}
+
 // ─── Step indicator ───────────────────────────────────────────────────────────
 
 type Step = 1 | 2 | 3 | 4
@@ -690,6 +734,12 @@ export default function ImportPage() {
               </div>
             </div>
           )}
+
+          {/* What a CSV cannot carry back in. Shown here rather than on the
+              export side because this is the moment someone is relying on
+              it: a Librarium CSV round-trips its own columns faithfully, and
+              the gap is everything that was never a column. */}
+          {headers.length > 0 && <ImportCaveats />}
 
           {/* Column mapping — one row per CSV column */}
           {headers.length > 0 && (
