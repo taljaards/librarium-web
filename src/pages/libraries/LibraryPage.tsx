@@ -13,7 +13,7 @@ import EmojiPicker from '../../components/EmojiPicker'
 import EditBookModal from '../../components/EditBookModal'
 import LoanFormModal from '../../components/LoanFormModal'
 import ExportButton from '../../components/ExportButton'
-import { booksExportUrl, loansExportUrl, quoteQueryValue } from '../../lib/download'
+import { booksExportUrl, loansExportUrl } from '../../lib/download'
 import {
   allConditions,
   conditionLabel,
@@ -1479,7 +1479,7 @@ function ShelfDetailView({ shelf, libraryId, onBack }: ShelfDetailViewProps) {
         <button onClick={onBack} className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">← Back</button>
         <div className="flex-1" />
         <ExportButton
-          urlFor={format => booksExportUrl(libraryId, format, { q: `shelf:${quoteQueryValue(shelf.name)}` })}
+          urlFor={format => booksExportUrl(libraryId, format, { shelfId: shelf.id })}
           fallbackName={`shelf-${shelf.name}`}
           label="Export shelf"
           disabled={books.length === 0}
@@ -5260,10 +5260,7 @@ function SeriesDetailView({ seriesId, libraryId, setExtraCrumbs, onBack }: Serie
         </button>
         {/* Exports the volumes you own from this series, ordered by position. */}
         <ExportButton
-          urlFor={format => booksExportUrl(libraryId, format, {
-            q: `series:${quoteQueryValue(series.name)}`,
-            sort: 'title',
-          })}
+          urlFor={format => booksExportUrl(libraryId, format, { seriesId: series.id })}
           fallbackName={`series-${series.name}`}
           label="Export"
           disabled={!hasAnyRows}
@@ -5981,11 +5978,16 @@ function LoansTab({ libraryId }: LoansTabProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
-        {/* Mirrors the server-side half of the loan filters (text search and
-            returned-vs-active). The overdue pill is a client-side view
-            filter, but the export marks overdue rows in its status column. */}
+        {/* Every filter the list applies is forwarded, including the two the
+            screen applies after the fetch — otherwise a Returned export would
+            carry active loans and an Overdue export would carry all of them. */}
         <ExportButton
-          urlFor={format => loansExportUrl(libraryId, format, { search, includeReturned })}
+          urlFor={format => loansExportUrl(libraryId, format, {
+            search,
+            includeReturned,
+            status: statusFilter,
+            overdueOnly: overdueFilter === 'overdue',
+          })}
           fallbackName="library-loans"
           disabled={visibleLoans.length === 0}
         />

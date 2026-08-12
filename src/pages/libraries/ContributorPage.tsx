@@ -7,7 +7,7 @@ import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom
 import { useAuth } from '../../auth/AuthContext'
 import BookCover from '../../components/BookCover'
 import ExportButton from '../../components/ExportButton'
-import { booksExportUrl, quoteQueryValue } from '../../lib/download'
+import { booksExportUrl } from '../../lib/download'
 import type { LibraryOutletContext } from '../../components/LibraryOutlet'
 import type {
   Book,
@@ -767,11 +767,11 @@ export default function ContributorPage() {
           <Section
             title={`Books in Library${contributor.books.length > 0 ? ` (${contributor.books.length})` : ''}`}
             action={contributor.books.length > 0 && (
-              // Same contributor filter the books list uses, so this exports
-              // exactly the titles shown below.
+              // Filtered by id: the contributor query operator matches names
+              // by substring, so an "Ann" page would sweep in every "Joanne".
               <ExportButton
                 urlFor={format => booksExportUrl(libraryId!, format, {
-                  q: `contributor:${quoteQueryValue(contributor.name)}`,
+                  contributorId: contributorId!,
                   sort: 'title',
                 })}
                 fallbackName={`books-by-${contributor.name}`}
