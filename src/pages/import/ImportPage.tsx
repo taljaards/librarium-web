@@ -298,7 +298,8 @@ function ImportCaveats() {
       </summary>
       <div className="mt-2 space-y-2 text-xs text-amber-900/90 dark:text-amber-200/80">
         <p>
-          A row becomes one book, matched on ISBN. Titles, authors, edition details,
+          A row becomes one book, matched on ISBN when the row has one — rows
+          without an ISBN always create a new book. Titles, authors, edition details,
           tags, and your reading status, rating, review, notes and dates all come back
           from the columns you map below.
         </p>
