@@ -57,7 +57,7 @@ export async function downloadAuthenticated(
   getToken: () => Promise<string | null>,
   path: string,
   fallbackName: string,
-): Promise<void> {
+): Promise<{ truncated: boolean }> {
   const token = await getToken()
 
   let res: Response
@@ -79,6 +79,10 @@ export async function downloadAuthenticated(
 
   const blob = await res.blob()
   saveBlob(blob, filenameFromResponse(res) ?? fallbackName)
+  // The server caps very large exports and says so in a header. Saving the
+  // file and staying silent would hand someone a partial library that looks
+  // complete, so the caller is told to warn.
+  return { truncated: res.headers.get('X-Export-Truncated') === 'true' }
 }
 
 /**
@@ -127,12 +131,24 @@ function saveBlob(blob: Blob, filename: string) {
 export function booksExportUrl(
   libraryId: string,
   format: ExportFormat,
-  params: { q?: string; sort?: string; sortDir?: string } = {},
+  params: {
+    q?: string
+    sort?: string
+    sortDir?: string
+    /** Exact-identity filters. Detail pages pass the id of what they show —
+     *  a name would match by substring and could sweep in other entities. */
+    contributorId?: string
+    shelfId?: string
+    seriesId?: string
+  } = {},
 ): string {
   const search = new URLSearchParams({ format })
   if (params.q) search.set('q', params.q)
   if (params.sort) search.set('sort', params.sort)
   if (params.sortDir) search.set('sort_dir', params.sortDir)
+  if (params.contributorId) search.set('contributor_id', params.contributorId)
+  if (params.shelfId) search.set('shelf_id', params.shelfId)
+  if (params.seriesId) search.set('series_id', params.seriesId)
   return `/api/v1/libraries/${libraryId}/books/export?${search}`
 }
 
@@ -140,22 +156,19 @@ export function booksExportUrl(
 export function loansExportUrl(
   libraryId: string,
   format: ExportFormat,
-  params: { search?: string; includeReturned?: boolean } = {},
+  params: {
+    search?: string
+    includeReturned?: boolean
+    /** The status and overdue pills are applied after the fetch, so they have
+     *  to be forwarded explicitly or the file will not match the screen. */
+    status?: 'active' | 'returned' | 'all'
+    overdueOnly?: boolean
+  } = {},
 ): string {
   const query = new URLSearchParams({ format })
   if (params.search) query.set('search', params.search)
   if (params.includeReturned === false) query.set('include_returned', 'false')
+  if (params.status && params.status !== 'all') query.set('status', params.status)
+  if (params.overdueOnly) query.set('overdue', 'true')
   return `/api/v1/libraries/${libraryId}/loans/export?${query}`
-}
-
-/**
- * Quotes a value for use in a query-language token like `series:"Bleach"`.
- *
- * Embedded double quotes would end the token early, so they are dropped —
- * the backend matches series, shelf and contributor names case-insensitively
- * and a name containing a quote is vanishingly rare compared to one
- * containing a space.
- */
-export function quoteQueryValue(value: string): string {
-  return `"${value.replace(/"/g, '')}"`
 }

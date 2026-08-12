@@ -60,7 +60,11 @@ export default function ExportButton({
     setOpen(false)
     setBusy(true)
     try {
-      await downloadAuthenticated(getToken, urlFor(format), `${fallbackName}.${format}`)
+      const { truncated } = await downloadAuthenticated(getToken, urlFor(format), `${fallbackName}.${format}`)
+      if (truncated) {
+        showToast('Export hit the row limit — the file is incomplete. Narrow the view and export again.',
+          { variant: 'error' })
+      }
     } catch (err) {
       showToast(err instanceof DownloadError ? err.message : 'Export failed', { variant: 'error' })
     } finally {

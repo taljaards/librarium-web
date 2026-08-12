@@ -9,7 +9,6 @@ import {
   DownloadError,
   filenameFromResponse,
   loansExportUrl,
-  quoteQueryValue,
 } from './download'
 
 // The export URL builders are the contract between what the user is looking
@@ -34,6 +33,18 @@ describe('booksExportUrl', () => {
     expect(params.has('sort')).toBe(false)
   })
 
+  it('forwards exact-identity filters instead of name matches', () => {
+    // A contributor name is matched by substring server-side, so a detail
+    // page must export by id or an "Ann" page sweeps in every "Joanne".
+    const params = new URL(booksExportUrl('lib-1', 'csv', {
+      contributorId: 'c-1', shelfId: 's-1', seriesId: 'sr-1',
+    }), 'http://x').searchParams
+
+    expect(params.get('contributor_id')).toBe('c-1')
+    expect(params.get('shelf_id')).toBe('s-1')
+    expect(params.get('series_id')).toBe('sr-1')
+  })
+
   it('never forwards paging — an export covers the whole result set', () => {
     const url = booksExportUrl('lib-1', 'csv', { q: 'bleach' })
     expect(url).not.toContain('page')
@@ -42,22 +53,29 @@ describe('booksExportUrl', () => {
 })
 
 describe('loansExportUrl', () => {
+  it('forwards the filters the screen applies after fetching', () => {
+    // status and overdue are client-side post-filters in the loans tab. Not
+    // forwarding them means a Returned export carries active loans.
+    const params = new URL(loansExportUrl('lib-1', 'csv', {
+      status: 'returned', overdueOnly: true,
+    }), 'http://x').searchParams
+
+    expect(params.get('status')).toBe('returned')
+    expect(params.get('overdue')).toBe('true')
+  })
+
+  it('omits status when the view is unfiltered', () => {
+    const params = new URL(loansExportUrl('lib-1', 'csv', { status: 'all' }), 'http://x').searchParams
+    expect(params.has('status')).toBe(false)
+    expect(params.has('overdue')).toBe(false)
+  })
+
   it('sends include_returned only when opting out', () => {
     expect(loansExportUrl('lib-1', 'csv', { includeReturned: true })).not.toContain('include_returned')
 
     const params = new URL(loansExportUrl('lib-1', 'csv', { search: 'sam', includeReturned: false }), 'http://x').searchParams
     expect(params.get('include_returned')).toBe('false')
     expect(params.get('search')).toBe('sam')
-  })
-})
-
-describe('quoteQueryValue', () => {
-  it('quotes multi-word values so the query language keeps them together', () => {
-    expect(quoteQueryValue('Tite Kubo')).toBe('"Tite Kubo"')
-  })
-
-  it('strips embedded quotes that would end the token early', () => {
-    expect(quoteQueryValue('The "Best" Series')).toBe('"The Best Series"')
   })
 })
 
@@ -139,6 +157,25 @@ describe('downloadAuthenticated', () => {
 
     await expect(downloadAuthenticated(async () => 'tok', '/export', 'x.csv'))
       .rejects.toThrow(new DownloadError(400, 'query too long'))
+  })
+
+  it('reports a capped export so the caller can warn', async () => {
+    // Saving a partial library silently is the failure this guards against.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response('title\n', { status: 200, headers: { 'X-Export-Truncated': 'true' } }),
+    ))
+    stubDownloadEnvironment()
+
+    const { truncated } = await downloadAuthenticated(async () => 'tok', '/export', 'x.csv')
+    expect(truncated).toBe(true)
+  })
+
+  it('reports a complete export as complete', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('title\n', { status: 200 })))
+    stubDownloadEnvironment()
+
+    const { truncated } = await downloadAuthenticated(async () => 'tok', '/export', 'x.csv')
+    expect(truncated).toBe(false)
   })
 
   it('reports an unreachable server rather than hanging', async () => {
